@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Music Video AI</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0a0a12;
+      color: #e0e0f0;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid #1e1e30;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      background: linear-gradient(90deg, #7c8cff, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #7c8cff;
+      box-shadow: 0 0 8px #7c8cff;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    .panel {
+      background: #111120;
+      border: 1px solid #1e1e30;
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .panel h2 {
+      font-size: 13px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #6060a0;
+      margin-bottom: 1.25rem;
+    }
+
+    .drop-zone {
+      border: 1.5px dashed #2a2a50;
+      border-radius: 10px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #0e0e1e;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: #7c8cff;
+      background: #12122a;
+    }
+
+    .drop-zone.has-file {
+      border-color: #4ade80;
+      background: #0a1a10;
+    }
+
+    .drop-zone svg { margin-bottom: 8px; }
+
+    .drop-zone p {
+      font-size: 13px;
+      color: #6060a0;
+      margin-top: 4px;
+    }
+
+    .drop-zone .file-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #4ade80;
+      margin-top: 8px;
+    }
+
+    audio {
+      width: 100%;
+      margin-top: 12px;
+      filter: invert(1) hue-rotate(180deg);
+      border-radius: 8px;
+    }
+
+    label.field-label {
+      display: block;
+      font-size: 12px;
+      color: #6060a0;
+      margin-bottom: 6px;
+      margin-top: 1rem;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      padding: 4px 12px;
+      border-radius: 99px;
+      border: 1px solid #2a2a50;
+      font-size: 12px;
+      color: #8080c0;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: #0e0e1e;
+    }
+
+    .tag:hover { border-color: #7c8cff; color: #b0b0ff; }
+
+    .tag.selected {
+      background: #1a1a3a;
+      border-color: #7c8cff;
+      color: #a0a8ff;
+    }
+
+    textarea {
+      width: 100%;
+      margin-top: 8px;
+      background: #0e0e1e;
+      border: 1px solid #2a2a50;
+      border-radius: 8px;
+      color: #e0e0f0;
+      font-size: 13px;
+      padding: 10px 12px;
+      resize: none;
+      height: 64px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #7c8cff;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 1rem;
+      gap: 12px;
+    }
+
+    .slider-row label {
+      font-size: 13px;
+      color: #8080c0;
+      min-width: 80px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: #7c8cff;
+    }
+
+    .slider-val {
+      font-size: 13px;
+      font-weight: 500;
+      color: #a0a8ff;
+      min-width: 24px;
+      text-align: right;
+    }
+
+    select {
+      width: 100%;
+      margin-top: 8px;
+      background: #0e0e1e;
+      border: 1px solid #2a2a50;
+      border-radius: 8px;
+      color: #e0e0f0;
+      font-size: 13px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    select:focus { outline: none; border-color: #7c8cff; }
+
+    .btn-generate {
+      width: 100%;
+      margin-top: 1.5rem;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, #5563ff, #9b59ff);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 0.02em;
+    }
+
+    .btn-generate:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .btn-generate:active:not(:disabled) { transform: scale(0.99); }
+    .btn-generate:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .video-box {
+      aspect-ratio: 16/9;
+      background: #0a0a18;
+      border-radius: 10px;
+      border: 1px solid #1e1e30;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .video-box video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+
+    .video-placeholder {
+      text-align: center;
+      color: #3a3a60;
+    }
+
+    .video-placeholder svg { margin-bottom: 8px; }
+    .video-placeholder p { font-size: 13px; }
+
+    .status {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #6060a0;
+      min-height: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .progress {
+      height: 3px;
+      background: #1e1e30;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #5563ff, #c084fc);
+      border-radius: 2px;
+      transition: width 0.6s ease;
+      width: 0%;
+    }
+
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid #2a2a50;
+      border-top-color: #7c8cff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .download-btn {
+      display: none;
+      width: 100%;
+      margin-top: 10px;
+      padding: 9px;
+      border-radius: 8px;
+      border: 1px solid #2a2a50;
+      background: transparent;
+      color: #a0a8ff;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+      text-align: center;
+    }
+
+    .download-btn:hover { background: #1a1a3a; border-color: #7c8cff; }
+
+    .error-msg {
+      background: #1a0a0a;
+      border: 1px solid #4a1a1a;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #ff8080;
+      margin-top: 12px;
+      display: none;
+    }
+
+    @media (max-width: 680px) {
+      .container { grid-template-columns: 1fr; padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="dot"></div>
+  <h1>Music Video AI</h1>
+</header>
+
+<div class="container">
+
+  <div>
+    <div class="panel">
+      <h2>1 — Áudio</h2>
+      <div class="drop-zone" id="dropzone"
+        onclick="document.getElementById('fileInput').click()"
+        ondragover="onDragOver(event)"
+        ondragleave="onDragLeave(event)"
+        ondrop="onDrop(event)">
+        <svg width="32" height="32" fill="none" stroke="#3a3a60" stroke-width="1.5" viewBox="0 0 24 24">
+          <path d="M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm12 0a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+        </svg>
+        <p>Clique ou arraste um arquivo</p>
+        <p>MP3, WAV ou M4A — máx. 10 MB</p>
+        <p class="file-name" id="file-name" style="display:none"></p>
+      </div>
+      <input type="file" id="fileInput" accept="audio/*" style="display:none" onchange="handleFile(this.files[0])">
+      <audio id="audio-el" controls style="display:none"></audio>
+    </div>
+
+    <div class="panel" style="margin-top:1rem;">
+      <h2>2 — Estilo visual</h2>
+      <div class="tags" id="tags">
+        <span class="tag selected" onclick="toggleTag(this)">synthwave</span>
+        <span class="tag" onclick="toggleTag(this)">cyberpunk</span>
+        <span class="tag" onclick="toggleTag(this)">natureza</span>
+        <span class="tag" onclick="toggleTag(this)">abstrato</span>
+        <span class="tag" onclick="toggleTag(this)">espaço</span>
+        <span class="tag" onclick="toggleTag(this)">retrô</span>
+        <span class="tag" onclick="toggleTag(this)">minimalista</span>
+        <span class="tag" onclick="toggleTag(this)">glitch art</span>
+        <span class="tag" onclick="toggleTag(this)">anime</span>
+        <span class="tag" onclick="toggleTag(this)">neon</span>
+      </div>
+      <textarea id="custom-prompt" placeholder="Ou descreva o visual livremente..."></textarea>
+    </div>
+
+    <div class="panel" style="margin-top:1rem;">
+      <h2>3 — Configurações</h2>
+
+      <label class="field-label">Modelo de IA</label>
+      <select id="model-sel">
+        <option value="anotherjesse/zeroscope-v2-xl">Zeroscope V2 XL (recomendado)</option>
+        <option value="lucataco/animate-diff">AnimateDiff</option>
+        <option value="stability-ai/stable-video-diffusion">Stable Video Diffusion</option>
+      </select>
+
+      <div class="slider-row">
+        <label>Duração</label>
+        <input type="range" min="3" max="20" value="8" step="1" id="dur-range"
+          oninput="document.getElementById('dur-val').textContent=this.value">
+        <span class="slider-val" id="dur-val">8</span>
+        <span style="font-size:12px; color:#6060a0;">seg</span>
+      </div>
+
+      <div class="slider-row">
+        <label>FPS</label>
+        <input type="range" min="8" max="24" value="16" step="4" id="fps-range"
+          oninput="document.getElementById('fps-val').textContent=this.value">
+        <span class="slider-val" id="fps-val">16</span>
+      </div>
+    </div>
+
+    <button class="btn-generate" id="gen-btn" onclick="generate()" disabled>
+      ✦ Gerar vídeo
+    </button>
+  </div>
+
+  <div>
+    <div class="panel">
+      <h2>Resultado</h2>
+
+      <div class="video-box" id="video-box">
+        <div class="video-placeholder" id="video-placeholder">
+          <svg width="40" height="40" fill="none" stroke="#3a3a60" stroke-width="1.5" viewBox="0 0 24 24">
+            <polygon points="5 3 19 12 5 21 5 3"/>
+          </svg>
+          <p>Aguardando geração...</p>
+        </div>
+      </div>
+
+      <div class="status" id="status">Faça upload de um áudio para começar</div>
+      <div class="progress" id="prog-bar" style="display:none">
+        <div class="progress-fill" id="prog-fill"></div>
+      </div>
+
+      <a class="download-btn" id="download-btn" download="music-video.mp4">
+        ↓ Baixar vídeo (.mp4)
+      </a>
+
+      <div class="error-msg" id="error-msg"></div>
+    </div>
+
+    <div class="panel" style="margin-top:1rem; font-size:12px; color:#4a4a80; line-height:1.7;">
+      <h2>Como funciona</h2>
+      <p>1. O áudio é enviado para uma Netlify Function</p>
+      <p>2. A função chama a API do Replicate com o seu prompt</p>
+      <p>3. O vídeo é gerado na nuvem e retornado como .mp4</p>
+      <p style="margin-top:8px; color:#3a3a60;">⚡ A geração leva ~1 a 3 minutos</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let audioFile = null;
+  let pollInterval = null;
+
+  function onDragOver(e) {
+    e.preventDefault();
+    document.getElementById('dropzone').classList.add('dragover');
+  }
+
+  function onDragLeave() {
+    document.getElementById('dropzone').classList.remove('dragover');
+  }
+
+  function onDrop(e) {
+    e.preventDefault();
+    document.getElementById('dropzone').classList.remove('dragover');
+    handleFile(e.dataTransfer.files[0]);
+  }
+
+  function handleFile(file) {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      showError('Arquivo muito grande. Máximo: 10 MB.');
+      return;
+    }
+    audioFile = file;
+    const dz = document.getElementById('dropzone');
+    dz.classList.add('has-file');
+    document.getElementById('file-name').textContent = file.name;
+    document.getElementById('file-name').style.display = 'block';
+
+    const url = URL.createObjectURL(file);
+    const audio = document.getElementById('audio-el');
+    audio.src = url;
+    audio.style.display = 'block';
+
+    document.getElementById('gen-btn').disabled = false;
+    setStatus('✓ Áudio carregado. Configure o estilo e clique em gerar.');
+    hideError();
+  }
+
+  function toggleTag(el) {
+    el.classList.toggle('selected');
+  }
+
+  function getPrompt() {
+    const custom = document.getElementById('custom-prompt').value.trim();
+    if (custom) return custom;
+    const tags = [...document.querySelectorAll('.tag.selected')].map(t => t.textContent);
+    return (tags.length ? tags.join(', ') : 'music video') + ', cinematic, high quality';
+  }
+
+  function setStatus(msg, loading = false) {
+    const el = document.getElementById('status');
+    if (loading) {
+      el.innerHTML = '<div class="spinner"></div><span>' + msg + '</span>';
+    } else {
+      el.textContent = msg;
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = '⚠ ' + msg;
+    el.style.display = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('error-msg').style.display = 'none';
+  }
+
+  async function generate() {
+    if (!audioFile) return;
+    hideError();
+
+    const btn = document.getElementById('gen-btn');
+    btn.disabled = true;
+    document.getElementById('prog-bar').style.display = 'block';
+    document.getElementById('download-btn').style.display = 'none';
+
+    setStatus('Enviando áudio...', true);
+    let progress = 0;
+
+    const progInterval = setInterval(() => {
+      progress = Math.min(progress + 1, 85);
+      document.getElementById('prog-fill').style.width = progress + '%';
+      if (progress < 20) setStatus('Enviando áudio...', true);
+      else if (progress < 45) setStatus('Gerando frames de vídeo...', true);
+      else if (progress < 70) setStatus('Aplicando estilo visual...', true);
+      else setStatus('Finalizando e renderizando...', true);
+    }, 2000);
+
+    try {
+      const base64 = await fileToBase64(audioFile);
+
+      const response = await fetch('/.netlify/functions/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          audioBase64: base64,
+          audioName: audioFile.name,
+          prompt: getPrompt(),
+          duration: parseInt(document.getElementById('dur-range').value),
+          fps: parseInt(document.getElementById('fps-range').value),
+          model: document.getElementById('model-sel').value,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao iniciar geração');
+      }
+
+      clearInterval(progInterval);
+      pollPrediction(data.predictionId);
+
+    } catch (err) {
+      clearInterval(progInterval);
+      btn.disabled = false;
+      document.getElementById('prog-fill').style.width = '0%';
+      setStatus('Erro na geração.');
+      showError(err.message);
+    }
+  }
+
+  async function pollPrediction(predictionId) {
+    setStatus('Aguardando resultado do Replicate...', true);
+    let attempts = 0;
+
+    pollInterval = setInterval(async () => {
+      attempts++;
+      if (attempts > 120) {
+        clearInterval(pollInterval);
+        setStatus('Tempo limite excedido. Tente novamente.');
+        document.getElementById('gen-btn').disabled = false;
+        return;
+      }
+
+      try {
+        const res = await fetch('/.netlify/functions/poll?id=' + predictionId);
+        const data = await res.json();
+
+        if (data.status === 'succeeded') {
+          clearInterval(pollInterval);
+          document.getElementById('prog-fill').style.width = '100%';
+          showVideo(data.videoUrl);
+        } else if (data.status === 'failed') {
+          clearInterval(pollInterval);
+          setStatus('Geração falhou.');
+          showError(data.error || 'Erro desconhecido no Replicate.');
+          document.getElementById('gen-btn').disabled = false;
+        }
+      } catch (e) {
+        // continua tentando
+      }
+    }, 5000);
+  }
+
+  function showVideo(url) {
+    const box = document.getElementById('video-box');
+    box.innerHTML = '<video src="' + url + '" controls autoplay loop style="width:100%;height:100%;object-fit:cover;border-radius:10px;"></video>';
+    setStatus('✓ Vídeo gerado com sucesso!');
+    document.getElementById('gen-btn').disabled = false;
+    const dlBtn = document.getElementById('download-btn');
+    dlBtn.href = url;
+    dlBtn.style.display = 'block';
+  }
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+</script>
+
+</body>
+</html>
