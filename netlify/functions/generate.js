@@ -81,4 +81,4 @@ function createPrediction(input, token) {
     req.write(payload);
     req.end();
   });
-        }
+}
